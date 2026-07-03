@@ -44,15 +44,27 @@ function App() {
   const [workouts, setWorkouts] = useState([])
   const [tab, setTab] = useState("new")
   const [loading, setLoading] = useState(false)
+const [dbStatus, setDbStatus] = useState("loading")
+const [dbMessage, setDbMessage] = useState("")
+async function loadWorkouts() {
+  setDbStatus("loading")
+  setDbMessage("Programa jungiasi prie duomenų bazės. Jei projektas buvo užmigdytas, pirmas paleidimas gali užtrukti 1–3 minutes.")
 
-  async function loadWorkouts() {
-    const { data, error } = await supabase
-      .from("workouts")
-      .select("*")
-      .order("created_at", { ascending: false })
+  const { data, error } = await supabase
+    .from("workouts")
+    .select("*")
+    .order("created_at", { ascending: false })
 
-    if (!error) setWorkouts(data || [])
+  if (error) {
+    setDbStatus("error")
+    setDbMessage("Nepavyko prisijungti prie duomenų bazės. Gali būti, kad Supabase projektas užmigdytas. Atidaryk Supabase ir paspausk Resume project.")
+    return
   }
+
+  setWorkouts(data || [])
+  setDbStatus("ok")
+  setDbMessage("")
+}
 
   useEffect(() => {
     loadWorkouts()
@@ -160,7 +172,11 @@ async function deleteWorkout(id) {
           <Stat title="Bendras krūvis" value={`${stats.totalVolume} kg`} />
           <Stat title="Didžiausias svoris" value={`${stats.maxWeight} kg`} />
         </div>
-
+{dbStatus !== "ok" && (
+  <div style={dbStatus === "error" ? styles.dbError : styles.dbNotice}>
+    {dbMessage}
+  </div>
+)}
         <div style={styles.tabs}>
           <button onClick={() => setTab("new")} style={tab === "new" ? styles.tabActive : styles.tab}>
             Naujas įrašas
@@ -338,7 +354,24 @@ const styles = {
     borderRadius: 22,
     padding: 20
   },
-  tabs: {
+  dbNotice: {
+  background: "#2f3215",
+  color: "#f4ffb0",
+  padding: 16,
+  borderRadius: 18,
+  marginBottom: 18,
+  border: "1px solid #596000",
+  fontWeight: 700
+},
+dbError: {
+  background: "#3a1616",
+  color: "#ffd1d1",
+  padding: 16,
+  borderRadius: 18,
+  marginBottom: 18,
+  border: "1px solid #7a2b2b",
+  fontWeight: 700
+},tabs: {
     display: "grid",
     gridTemplateColumns: "repeat(3, 1fr)",
     gap: 8,
